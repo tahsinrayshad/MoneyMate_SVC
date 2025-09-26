@@ -35,6 +35,7 @@ Route::group([
 ], function ($router) {
     Route::get('/', [TransactionController::class, 'index']);
     Route::post('/', [TransactionController::class, 'store']);
+    Route::get('/summary', [TransactionController::class, 'getFinancialSummary']);
     Route::get('/type/{type}', [TransactionController::class, 'getByType']);
     Route::get('/{id}', [TransactionController::class, 'show']);
     Route::put('/{id}', [TransactionController::class, 'update']);
