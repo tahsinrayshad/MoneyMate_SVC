@@ -43,14 +43,16 @@ Route::prefix('auth')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('blogs')->group(function () {
-    // Public routes
+    // Public routes (no authentication required)
     Route::get('/', [BlogController::class, 'index']);
     Route::get('/search', [BlogController::class, 'search']);
     Route::get('/user/{username}', [BlogController::class, 'getByUsername']);
     Route::get('/category/{category}', [BlogController::class, 'getByCategory']);
     Route::get('/{id}', [BlogController::class, 'show']);
-    
-    // Protected routes (require authentication)
+});
+
+// Protected blog routes (require authentication)
+Route::prefix('blogs')->group(function () {
     Route::post('/create', [BlogController::class, 'store']);
     Route::put('/{id}', [BlogController::class, 'update']);
     Route::delete('/{id}', [BlogController::class, 'destroy']);

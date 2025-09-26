@@ -75,7 +75,14 @@ class AuthController extends Controller
      */
     public function me()
     {
-        return response()->json(auth('api')->user());
+        $user = auth('api')->user();
+        $token = $this->jwtAuth->getToken();
+        
+        return response()->json([
+            'user' => $user,
+            'token' => $token ? $token->get() : null,
+            'token_type' => 'bearer'
+        ]);
     }
 
     /**

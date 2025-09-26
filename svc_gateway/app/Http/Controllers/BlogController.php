@@ -48,8 +48,30 @@ class BlogController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            $response = Http::withToken($this->extractToken($request))
-                ->post($this->blogServiceUrl . '/blogs', $request->all());
+            // Check if user is authenticated by validating token presence
+            $token = $this->extractToken($request);
+            if (!$token) {
+                return response()->json([
+                    'error' => 'Unauthenticated',
+                    'message' => 'You must be logged in to create a blog post'
+                ], 401);
+            }
+
+            // Get authenticated user information
+            $user = $this->getAuthenticatedUser($token);
+            if (!$user) {
+                return response()->json([
+                    'error' => 'Invalid token',
+                    'message' => 'Unable to verify authentication'
+                ], 401);
+            }
+            
+            // Add username from authenticated user to request data
+            $blogData = $request->all();
+            $blogData['username'] = $user['username'] ?? $user['email']; // Use username or email as fallback
+
+            $response = Http::withToken($token)
+                ->post($this->blogServiceUrl . '/blogs', $blogData);
             
             return response()->json(
                 $response->json(),
@@ -89,8 +111,53 @@ class BlogController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         try {
-            $response = Http::withToken($this->extractToken($request))
-                ->put($this->blogServiceUrl . '/blogs/' . $id, $request->all());
+            // Check if user is authenticated
+            $token = $this->extractToken($request);
+            if (!$token) {
+                return response()->json([
+                    'error' => 'Unauthenticated',
+                    'message' => 'You must be logged in to update a blog post'
+                ], 401);
+            }
+
+            // Get authenticated user information
+            $user = $this->getAuthenticatedUser($token);
+            if (!$user) {
+                return response()->json([
+                    'error' => 'Invalid token',
+                    'message' => 'Unable to verify authentication'
+                ], 401);
+            }
+
+            // Get the existing blog to check ownership
+            $blogResponse = Http::timeout(30)->get($this->blogServiceUrl . '/blogs/' . $id);
+            
+            if (!$blogResponse->successful()) {
+                return response()->json([
+                    'error' => 'Blog not found',
+                    'message' => 'The blog post does not exist'
+                ], 404);
+            }
+
+            $blogData = $blogResponse->json();
+            $existingBlog = $blogData['data'] ?? $blogData; // Handle response format
+            $currentUsername = $user['username'] ?? $user['email'];
+
+            // Check if the current user owns this blog
+            if ($existingBlog['username'] !== $currentUsername) {
+                return response()->json([
+                    'error' => 'Forbidden',
+                    'message' => 'You can only update your own blog posts'
+                ], 403);
+            }
+            
+            // Add username from authenticated user to request data
+            $updateData = $request->all();
+            $updateData['username'] = $currentUsername;
+
+            $response = Http::withToken($token)
+                ->timeout(30)
+                ->put($this->blogServiceUrl . '/blogs/' . $id, $updateData);
             
             return response()->json(
                 $response->json(),
@@ -110,7 +177,48 @@ class BlogController extends Controller
     public function destroy(Request $request, string $id): JsonResponse
     {
         try {
-            $response = Http::withToken($this->extractToken($request))
+            // Check if user is authenticated
+            $token = $this->extractToken($request);
+            if (!$token) {
+                return response()->json([
+                    'error' => 'Unauthenticated',
+                    'message' => 'You must be logged in to delete a blog post'
+                ], 401);
+            }
+
+            // Get authenticated user information
+            $user = $this->getAuthenticatedUser($token);
+            if (!$user) {
+                return response()->json([
+                    'error' => 'Invalid token',
+                    'message' => 'Unable to verify authentication'
+                ], 401);
+            }
+
+            // Get the existing blog to check ownership
+            $blogResponse = Http::timeout(30)->get($this->blogServiceUrl . '/blogs/' . $id);
+            
+            if (!$blogResponse->successful()) {
+                return response()->json([
+                    'error' => 'Blog not found',
+                    'message' => 'The blog post does not exist'
+                ], 404);
+            }
+
+            $blogData = $blogResponse->json();
+            $existingBlog = $blogData['data'] ?? $blogData; // Handle response format
+            $currentUsername = $user['username'] ?? $user['email'];
+
+            // Check if the current user owns this blog
+            if ($existingBlog['username'] !== $currentUsername) {
+                return response()->json([
+                    'error' => 'Forbidden',
+                    'message' => 'You can only delete your own blog posts'
+                ], 403);
+            }
+
+            $response = Http::withToken($token)
+                ->timeout(30)
                 ->delete($this->blogServiceUrl . '/blogs/' . $id);
             
             return response()->json(
@@ -194,6 +302,27 @@ class BlogController extends Controller
         
         if ($authorization && str_starts_with($authorization, 'Bearer ')) {
             return substr($authorization, 7);
+        }
+        
+        return null;
+    }
+
+    /**
+     * Get authenticated user information from identity service
+     */
+    private function getAuthenticatedUser(string $token): ?array
+    {
+        try {
+            $userResponse = Http::withToken($token)
+                ->get(env('SVC_ID_URL', 'http://localhost:9001') . '/api/auth/me');
+
+            if ($userResponse->successful()) {
+                $data = $userResponse->json();
+                // Extract user data from the new response structure
+                return $data['user'] ?? $data; // Handle both new and old response formats
+            }
+        } catch (Exception $e) {
+            // Log error if needed
         }
         
         return null;
