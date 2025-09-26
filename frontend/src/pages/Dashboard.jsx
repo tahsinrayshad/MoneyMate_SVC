@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 
 function Dashboard({ user, onNavigate }) {
-  const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [username] = useState("test_user"); // You can get this from auth context or props
@@ -103,21 +102,7 @@ function Dashboard({ user, onNavigate }) {
               Here's your financial overview.
             </p>
           </div>
-          <div className="mt-4 md:mt-0 flex items-center space-x-3">
-            <select
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="year">This Year</option>
-            </select>
-            <button className="bg-gradient-to-r from-emerald-500 to-blue-500 text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2">
-              <Plus size={16} />
-              <span>Add Transaction</span>
-            </button>
-          </div>
+          
         </div>
       </div>
 
