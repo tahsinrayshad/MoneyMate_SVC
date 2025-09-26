@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\IdentityController;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\TransactionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -53,4 +54,20 @@ Route::prefix('blogs')->group(function () {
     Route::post('/create', [BlogController::class, 'store']);
     Route::put('/{id}', [BlogController::class, 'update']);
     Route::delete('/{id}', [BlogController::class, 'destroy']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Transaction Service Routes
+|--------------------------------------------------------------------------
+*/
+Route::prefix('transactions')->group(function () {
+    // All routes require authentication (based on transaction service setup)
+    Route::get('/', [TransactionController::class, 'index']);
+    Route::post('/', [TransactionController::class, 'store']);
+    Route::get('/type/{type}', [TransactionController::class, 'getByType']);
+    Route::get('/{id}', [TransactionController::class, 'show']);
+    Route::put('/{id}', [TransactionController::class, 'update']);
+    Route::patch('/{id}', [TransactionController::class, 'update']);
+    Route::delete('/{id}', [TransactionController::class, 'destroy']);
 });
