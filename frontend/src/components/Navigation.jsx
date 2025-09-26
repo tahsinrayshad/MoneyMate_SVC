@@ -51,7 +51,7 @@ function Navigation({ currentPage, onNavigate, user, onLogout }) {
                 <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
                   <User size={16} className="text-white" />
                 </div>
-                <span className="text-sm font-medium text-gray-700">{user?.name || 'User'}</span>
+                <span className="text-sm font-medium text-gray-700">{user?.firstname ? `${user.firstname} ${user.lastname}` : user?.username || 'User'}</span>
               </div>
               <button
                 onClick={onLogout}
