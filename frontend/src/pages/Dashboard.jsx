@@ -376,34 +376,6 @@ function Dashboard({ user, onNavigate }) {
               </div>
             </div>
           </div>
-
-          {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              Quick Actions
-            </h3>
-            <div className="space-y-3">
-              <button className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 px-4 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center space-x-2">
-                <Plus size={16} />
-                <span>Add Income</span>
-              </button>
-              <button className="w-full bg-gradient-to-r from-red-500 to-pink-600 text-white py-3 px-4 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center space-x-2">
-                <Plus size={16} />
-                <span>Add Expense</span>
-              </button>
-              <button className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-4 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center space-x-2">
-                <Users size={16} />
-                <span>Manage Loans</span>
-              </button>
-              <button
-                onClick={handleBlogClick}
-                className="w-full bg-gradient-to-r from-purple-500 to-violet-600 text-white py-3 px-4 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center space-x-2"
-              >
-                <BookOpen size={16} />
-                <span>Blog</span>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
