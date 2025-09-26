@@ -28,7 +28,9 @@ class IdentityController extends Controller
     public function signup(Request $request): JsonResponse
     {
         try {
-            $response = Http::post($this->identityServiceUrl . '/signup', $request->all());
+            $response = Http::withHeaders([
+                'X-Gateway-Request' => 'moneymate-gateway-2025'
+            ])->post($this->identityServiceUrl . '/signup', $request->all());
             
             return response()->json(
                 $response->json(),
@@ -48,7 +50,9 @@ class IdentityController extends Controller
     public function login(Request $request): JsonResponse
     {
         try {
-            $response = Http::post($this->identityServiceUrl . '/login', $request->all());
+            $response = Http::withHeaders([
+                'X-Gateway-Request' => 'moneymate-gateway-2025'
+            ])->post($this->identityServiceUrl . '/login', $request->all());
             
             return response()->json(
                 $response->json(),
@@ -68,7 +72,16 @@ class IdentityController extends Controller
     public function me(Request $request): JsonResponse
     {
         try {
-            $response = Http::withToken($this->extractToken($request))
+            $token = $this->extractToken($request);
+            if (!$token) {
+                return response()->json([
+                    'error' => 'Unauthenticated',
+                    'message' => 'No token provided'
+                ], 401);
+            }
+
+            $response = Http::withToken($token)
+                ->withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
                 ->get($this->identityServiceUrl . '/me');
             
             return response()->json(
@@ -90,6 +103,7 @@ class IdentityController extends Controller
     {
         try {
             $response = Http::withToken($this->extractToken($request))
+                ->withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
                 ->post($this->identityServiceUrl . '/logout');
             
             return response()->json(
@@ -110,7 +124,16 @@ class IdentityController extends Controller
     public function refresh(Request $request): JsonResponse
     {
         try {
-            $response = Http::withToken($this->extractToken($request))
+            $token = $this->extractToken($request);
+            if (!$token) {
+                return response()->json([
+                    'error' => 'Unauthenticated',
+                    'message' => 'No token provided'
+                ], 401);
+            }
+
+            $response = Http::withToken($token)
+                ->withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
                 ->post($this->identityServiceUrl . '/refresh');
             
             return response()->json(
@@ -137,5 +160,15 @@ class IdentityController extends Controller
         }
         
         return null;
+    }
+
+    /**
+     * Create HTTP client with gateway headers
+     */
+    private function httpWithGateway()
+    {
+        return Http::withHeaders([
+            'X-Gateway-Request' => 'moneymate-gateway-2025'
+        ]);
     }
 }

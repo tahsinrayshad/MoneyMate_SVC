@@ -28,7 +28,8 @@ class BlogController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $response = Http::get($this->blogServiceUrl . '/blogs', $request->query());
+            $response = Http::withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
+                ->get($this->blogServiceUrl . '/blogs', $request->query());
             
             return response()->json(
                 $response->json(),
@@ -71,6 +72,7 @@ class BlogController extends Controller
             $blogData['username'] = $user['username'] ?? $user['email']; // Use username or email as fallback
 
             $response = Http::withToken($token)
+                ->withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
                 ->post($this->blogServiceUrl . '/blogs', $blogData);
             
             return response()->json(
@@ -91,7 +93,8 @@ class BlogController extends Controller
     public function show(Request $request, string $id): JsonResponse
     {
         try {
-            $response = Http::get($this->blogServiceUrl . '/blogs/' . $id);
+            $response = Http::withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
+                ->get($this->blogServiceUrl . '/blogs/' . $id);
             
             return response()->json(
                 $response->json(),
@@ -156,6 +159,7 @@ class BlogController extends Controller
             $updateData['username'] = $currentUsername;
 
             $response = Http::withToken($token)
+                ->withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
                 ->timeout(30)
                 ->put($this->blogServiceUrl . '/blogs/' . $id, $updateData);
             
@@ -218,6 +222,7 @@ class BlogController extends Controller
             }
 
             $response = Http::withToken($token)
+                ->withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
                 ->timeout(30)
                 ->delete($this->blogServiceUrl . '/blogs/' . $id);
             
@@ -239,7 +244,8 @@ class BlogController extends Controller
     public function search(Request $request): JsonResponse
     {
         try {
-            $response = Http::get($this->blogServiceUrl . '/blogs/search', $request->query());
+            $response = Http::withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
+                ->get($this->blogServiceUrl . '/blogs/search', $request->query());
             
             return response()->json(
                 $response->json(),
@@ -259,7 +265,8 @@ class BlogController extends Controller
     public function getByUsername(Request $request, string $username): JsonResponse
     {
         try {
-            $response = Http::get($this->blogServiceUrl . '/blogs/user/' . $username, $request->query());
+            $response = Http::withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
+                ->get($this->blogServiceUrl . '/blogs/user/' . $username, $request->query());
             
             return response()->json(
                 $response->json(),
@@ -279,7 +286,8 @@ class BlogController extends Controller
     public function getByCategory(Request $request, string $category): JsonResponse
     {
         try {
-            $response = Http::get($this->blogServiceUrl . '/blogs/category/' . $category, $request->query());
+            $response = Http::withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
+                ->get($this->blogServiceUrl . '/blogs/category/' . $category, $request->query());
             
             return response()->json(
                 $response->json(),
@@ -314,6 +322,7 @@ class BlogController extends Controller
     {
         try {
             $userResponse = Http::withToken($token)
+                ->withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
                 ->get(env('SVC_ID_URL', 'http://localhost:9001') . '/api/auth/me');
 
             if ($userResponse->successful()) {

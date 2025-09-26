@@ -51,6 +51,7 @@ class TransactionController extends Controller
             $queryParams['username'] = $user['username'] ?? $user['email'];
 
             $response = Http::withToken($token)
+                ->withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
                 ->get($this->transactionServiceUrl . '/transactions', $queryParams);
             
             return response()->json(
@@ -95,6 +96,7 @@ class TransactionController extends Controller
             $transactionData['username'] = $user['username'] ?? $user['email'];
 
             $response = Http::withToken($token)
+                ->withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
                 ->post($this->transactionServiceUrl . '/transactions', $transactionData);
             
             return response()->json(
@@ -134,6 +136,7 @@ class TransactionController extends Controller
             }
 
             $response = Http::withToken($token)
+                ->withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
                 ->get($this->transactionServiceUrl . '/transactions/' . $id);
             
             if (!$response->successful()) {
@@ -325,6 +328,7 @@ class TransactionController extends Controller
             $queryParams['username'] = $user['username'] ?? $user['email'];
 
             $response = Http::withToken($token)
+                ->withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
                 ->get($this->transactionServiceUrl . '/transactions/type/' . $type, $queryParams);
             
             return response()->json(
@@ -360,6 +364,7 @@ class TransactionController extends Controller
     {
         try {
             $userResponse = Http::withToken($token)
+                ->withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
                 ->get(env('SVC_ID_URL', 'http://localhost:9001') . '/api/auth/me');
 
             if ($userResponse->successful()) {
@@ -402,6 +407,7 @@ class TransactionController extends Controller
             $queryParams = ['username' => $user['username'] ?? $user['email']];
 
             $response = Http::withToken($token)
+                ->withHeaders(['X-Gateway-Request' => 'moneymate-gateway-2025'])
                 ->get($this->transactionServiceUrl . '/transactions/summary', $queryParams);
             
             return response()->json(
