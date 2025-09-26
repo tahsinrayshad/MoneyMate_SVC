@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import CreateBlogModal from '../components/CreateBlogModal';
+import axios from 'axios';
 import { 
   Search, 
   Plus,
@@ -12,107 +13,94 @@ import {
 function BlogPage({ user }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock blog data
-  const blogPosts = [
-    {
-      id: 1,
-      title: "5 Simple Steps to Start Emergency Fund",
-      excerpt: "Building an emergency fund is crucial for financial security. Here's how to start even with a tight budget.",
-      author: "Sarah Johnson",
-      authorAvatar: "SJ",
-      publishedAt: "2025-01-14",
-      readTime: "5 min read",
-      likes: 24,
-      comments: 8,
-      tags: ["Emergency Fund", "Budgeting", "Savings"],
-      content: "An emergency fund is your financial safety net...",
-      isLiked: false
-    },
-    {
-      id: 2,
-      title: "How I Paid Off $30K in Student Loans",
-      excerpt: "My personal journey of becoming debt-free in 2 years through strategic planning and side hustles.",
-      author: "Mike Chen",
-      authorAvatar: "MC",
-      publishedAt: "2025-01-13",
-      readTime: "8 min read",
-      likes: 156,
-      comments: 32,
-      tags: ["Debt", "Student Loans", "Success Story"],
-      content: "Two years ago, I was drowning in student debt...",
-      isLiked: true
-    },
-    {
-      id: 3,
-      title: "Investment Basics for Beginners",
-      excerpt: "Start your investment journey with these fundamental concepts and practical tips for new investors.",
-      author: "Emily Rodriguez",
-      authorAvatar: "ER",
-      publishedAt: "2025-01-12",
-      readTime: "6 min read",
-      likes: 89,
-      comments: 15,
-      tags: ["Investment", "Beginner", "Stocks"],
-      content: "Investing can seem intimidating at first...",
-      isLiked: false
-    },
-    {
-      id: 4,
-      title: "Budgeting Apps vs. Spreadsheets: What Works Better?",
-      excerpt: "A comprehensive comparison of digital budgeting tools and traditional spreadsheet methods.",
-      author: "David Park",
-      authorAvatar: "DP",
-      publishedAt: "2025-01-11",
-      readTime: "7 min read",
-      likes: 67,
-      comments: 21,
-      tags: ["Budgeting", "Tools", "Comparison"],
-      content: "The eternal debate in personal finance...",
-      isLiked: false
-    },
-    {
-      id: 5,
-      title: "Side Hustle Ideas That Actually Make Money",
-      excerpt: "Practical side hustle opportunities that can boost your income without overwhelming your schedule.",
-      author: "Lisa Wang",
-      authorAvatar: "LW",
-      publishedAt: "2025-01-10",
-      readTime: "9 min read",
-      likes: 203,
-      comments: 45,
-      tags: ["Side Hustle", "Income", "Entrepreneurship"],
-      content: "Everyone talks about side hustles, but which ones actually work?",
-      isLiked: true
+  // Fetch blogs from API
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
+
+  const fetchBlogs = async (searchQuery = '') => {
+    try {
+      setLoading(true);
+      let url = 'http://localhost:9000/api/blogs';
+      
+      // Use search endpoint if query provided
+      if (searchQuery.trim()) {
+        url = `http://localhost:9000/api/blogs/search?q=${encodeURIComponent(searchQuery)}`;
+      }
+      
+      const response = await axios.get(url);
+      console.log('API Response:', response.data);
+      
+      // Handle Laravel API response structure
+      let blogData = [];
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        blogData = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        blogData = response.data;
+      } else {
+        console.warn('Unexpected API response structure:', response.data);
+        blogData = [];
+      }
+      
+      console.log('Processed blog data:', blogData);
+      setPosts(blogData);
+      setError(null);
+    } catch (err) {
+      setError('Failed to fetch blogs. Please try again later.');
+      console.error('Error fetching blogs:', err);
+      setPosts([]); // Set empty array on error
+    } finally {
+      setLoading(false);
     }
-  ];
-
-  const [posts, setPosts] = useState(blogPosts);
-
-  const handleCreateBlog = (newBlog) => {
-    setPosts([newBlog, ...posts]);
   };
 
+  const handleCreateBlog = async (newBlog) => {
+    // Refresh the blogs list to include the newly created blog
+    await fetchBlogs();
+  };
 
-  const filteredPosts = posts.filter(post =>
-    post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    post.excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-  ).sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+  // Search handler
+  const handleSearch = async (query) => {
+    setSearchTerm(query);
+    await fetchBlogs(query);
+  };
 
-  const BlogCard = ({ post }) => (
+  const handleClearSearch = async () => {
+    setSearchTerm('');
+    await fetchBlogs();
+  };
+
+  // Use posts directly since filtering is now done on the backend
+  const filteredPosts = Array.isArray(posts) ? posts : [];
+  
+  console.log('Posts:', posts);
+  console.log('Search term:', searchTerm);
+
+  const BlogCard = ({ post }) => {
+    const authorName = post.username || 'Anonymous';
+    const authorInitials = authorName.split(' ').map(name => name[0]).join('').toUpperCase().slice(0, 2);
+    const publishDate = post.created_at || new Date().toISOString();
+    const formattedDate = new Date(publishDate).toLocaleDateString();
+    const category = post.category;
+    
+    // Create excerpt from content (first 200 characters)
+    const excerpt = post.content ? post.content.substring(0, 200) + (post.content.length > 200 ? '...' : '') : 'No preview available';
+    
+    return (
     <article className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
       <div className="flex items-center space-x-3 mb-4">
         <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
-          <span className="text-white font-medium text-sm">{post.authorAvatar}</span>
+            <span className="text-white font-medium text-sm">{authorInitials}</span>
         </div>
         <div>
-          <p className="font-medium text-gray-900">{post.author}</p>
+            <p className="font-medium text-gray-900">{authorName}</p>
           <div className="flex items-center space-x-2 text-sm text-gray-500">
             <Clock size={14} />
-            <span>{post.publishedAt}</span>
-            <span>•</span>
-            <span>{post.readTime}</span>
+              <span>{formattedDate}</span>
           </div>
         </div>
       </div>
@@ -121,21 +109,21 @@ function BlogPage({ user }) {
         {post.title}
       </h2>
       
-      <p className="text-gray-600 mb-4 leading-relaxed">{post.excerpt}</p>
+        <p className="text-gray-600 mb-4 leading-relaxed">
+          {excerpt}
+        </p>
 
+        {category && (
       <div className="flex flex-wrap gap-2 mb-4">
-        {post.tags.map((tag, index) => (
-          <span
-            key={index}
-            className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full hover:bg-blue-200 cursor-pointer transition-colors"
-          >
-            {tag}
+            <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full hover:bg-blue-200 cursor-pointer transition-colors">
+              {category}
           </span>
-        ))}
       </div>
+        )}
 
     </article>
   );
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -152,15 +140,24 @@ function BlogPage({ user }) {
 
       {/* Controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 space-y-4 md:space-y-0">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Search posts, tags, or authors..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-72"
+        <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+            placeholder="Search posts by title or content..."
+              value={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
+          {searchTerm && (
+            <button
+              onClick={handleClearSearch}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              title="Clear search"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         <button
@@ -175,7 +172,25 @@ function BlogPage({ user }) {
 
       {/* Blog Posts Grid */}
       <div className="space-y-8">
-        {filteredPosts.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <BookOpen size={48} className="text-gray-300 mx-auto mb-4 animate-pulse" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">Loading articles...</h3>
+            <p className="text-gray-500">Please wait while we fetch the latest blogs.</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <BookOpen size={48} className="text-red-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-red-600 mb-2">Error Loading Articles</h3>
+            <p className="text-red-500 mb-4">{error}</p>
+            <button
+              onClick={fetchBlogs}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : filteredPosts.length > 0 ? (
           filteredPosts.map(post => (
             <BlogCard key={post.id} post={post} />
           ))

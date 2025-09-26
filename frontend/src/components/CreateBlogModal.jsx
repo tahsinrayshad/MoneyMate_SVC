@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { X, Save, Eye, Hash, Type, FileText } from 'lucide-react';
+import axios from 'axios';
 
 function CreateBlogModal({ isOpen, onClose, onSubmit, user }) {
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    tags: '',
-    excerpt: ''
+    category: ''
   });
   const [isPreview, setIsPreview] = useState(false);
   const [errors, setErrors] = useState({});
@@ -43,14 +43,8 @@ function CreateBlogModal({ isOpen, onClose, onSubmit, user }) {
       newErrors.content = 'Content must be at least 50 characters';
     }
     
-    if (!formData.excerpt.trim()) {
-      newErrors.excerpt = 'Excerpt is required';
-    } else if (formData.excerpt.length < 20) {
-      newErrors.excerpt = 'Excerpt must be at least 20 characters';
-    }
-    
-    if (!formData.tags.trim()) {
-      newErrors.tags = 'At least one tag is required';
+    if (!formData.category.trim()) {
+      newErrors.category = 'Category is required';
     }
     
     setErrors(newErrors);
@@ -64,34 +58,55 @@ function CreateBlogModal({ isOpen, onClose, onSubmit, user }) {
     
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      const newBlog = {
-        id: Date.now(),
-        title: formData.title,
-        excerpt: formData.excerpt,
-        content: formData.content,
-        author: user?.name || 'Anonymous',
-        authorAvatar: user?.name?.split(' ').map(n => n[0]).join('') || 'A',
-        publishedAt: new Date().toISOString().split('T')[0],
-        readTime: `${Math.ceil(formData.content.length / 200)} min read`,
-        likes: 0,
-        comments: 0,
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        isLiked: false
-      };
+    try {
+      const username = user?.username || user?.name || 'Anonymous';
+      const token = localStorage.getItem('access_token');
+      console.log('User object:', user);
+      console.log('Username to send:', username);
+      console.log('Auth token:', token ? 'Present' : 'Missing');
       
-      onSubmit(newBlog);
-      setFormData({ title: '', content: '', tags: '', excerpt: '' });
-      setErrors({});
-      setIsPreview(false);
+      if (!token) {
+        setErrors({ submit: 'Authentication required. Please log in again.' });
+        return;
+      }
+      
+      const response = await axios.post('http://localhost:9000/api/blogs/create', {
+        username: username,
+        title: formData.title,
+        content: formData.content,
+        category: formData.category
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Blog created successfully:', response.data);
+      
+      // Call onSubmit to refresh the blog list
+      if (onSubmit) {
+        onSubmit(response.data);
+      }
+      
+      handleClose();
+    } catch (error) {
+      console.error('Error creating blog:', error);
+      // Set error message
+      if (error.response?.status === 401) {
+        setErrors({ submit: 'Session expired. Please log in again.' });
+      } else if (error.response && error.response.data && error.response.data.message) {
+        setErrors({ submit: error.response.data.message });
+      } else {
+        setErrors({ submit: 'Failed to create blog. Please try again.' });
+      }
+    } finally {
       setIsSubmitting(false);
-      onClose();
-    }, 1000);
+    }
   };
 
   const handleClose = () => {
-    setFormData({ title: '', content: '', tags: '', excerpt: '' });
+    setFormData({ title: '', content: '', category: '' });
     setErrors({});
     setIsPreview(false);
     onClose();
@@ -101,7 +116,7 @@ function CreateBlogModal({ isOpen, onClose, onSubmit, user }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
@@ -116,14 +131,14 @@ function CreateBlogModal({ isOpen, onClose, onSubmit, user }) {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setIsPreview(!isPreview)}
-              className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              className="flex items-center space-x-2 px-3 py-2 text-gray-600 bg-gray-100 rounded-lg"
             >
               <Eye size={16} />
               <span className="text-sm">{isPreview ? 'Edit' : 'Preview'}</span>
             </button>
             <button
               onClick={handleClose}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-gray-400 bg-gray-100 rounded-lg"
             >
               <X size={20} />
             </button>
@@ -131,7 +146,7 @@ function CreateBlogModal({ isOpen, onClose, onSubmit, user }) {
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div className="flex-1 p-6 overflow-y-auto">
           {!isPreview ? (
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Title */}
@@ -153,43 +168,31 @@ function CreateBlogModal({ isOpen, onClose, onSubmit, user }) {
                 {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
               </div>
 
-              {/* Excerpt */}
-              <div>
-                <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
-                  <FileText size={16} />
-                  <span>Excerpt</span>
-                </label>
-                <textarea
-                  name="excerpt"
-                  value={formData.excerpt}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="Write a brief summary of your blog post..."
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none ${
-                    errors.excerpt ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {errors.excerpt && <p className="mt-1 text-sm text-red-600">{errors.excerpt}</p>}
-              </div>
-
-              {/* Tags */}
+              {/* Category */}
               <div>
                 <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
                   <Hash size={16} />
-                  <span>Tags</span>
+                  <span>Category</span>
                 </label>
-                <input
-                  type="text"
-                  name="tags"
-                  value={formData.tags}
+                <select
+                  name="category"
+                  value={formData.category}
                   onChange={handleChange}
-                  placeholder="Enter tags separated by commas (e.g., budgeting, savings, investment)"
                   className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                    errors.tags ? 'border-red-300' : 'border-gray-300'
+                    errors.category ? 'border-red-300' : 'border-gray-300'
                   }`}
-                />
-                {errors.tags && <p className="mt-1 text-sm text-red-600">{errors.tags}</p>}
-                <p className="mt-1 text-xs text-gray-500">Separate multiple tags with commas</p>
+                >
+                  <option value="">Select a category</option>
+                  <option value="General">General</option>
+                  <option value="Budgeting">Budgeting</option>
+                  <option value="Investment">Investment</option>
+                  <option value="Savings">Savings</option>
+                  <option value="Debt Management">Debt Management</option>
+                  <option value="Financial Planning">Financial Planning</option>
+                  <option value="Business">Business</option>
+                  <option value="Education">Education</option>
+                </select>
+                {errors.category && <p className="mt-1 text-sm text-red-600">{errors.category}</p>}
               </div>
 
               {/* Content */}
@@ -213,6 +216,13 @@ function CreateBlogModal({ isOpen, onClose, onSubmit, user }) {
                   {formData.content.length} characters • {Math.ceil(formData.content.length / 200)} min read
                 </p>
               </div>
+
+              {/* Submit Error */}
+              {errors.submit && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-sm text-red-600">{errors.submit}</p>
+                </div>
+              )}
             </form>
           ) : (
             /* Preview Mode */
@@ -226,28 +236,22 @@ function CreateBlogModal({ isOpen, onClose, onSubmit, user }) {
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
                     <span className="text-white font-medium text-sm">
-                      {user?.name?.split(' ').map(n => n[0]).join('') || 'A'}
+                      {(user?.username || user?.name)?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'A'}
                     </span>
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">{user?.name || 'Anonymous'}</p>
+                    <p className="font-medium text-gray-900">{user?.username || user?.name || 'Anonymous'}</p>
                     <p className="text-sm text-gray-500">Just now • {Math.ceil(formData.content.length / 200)} min read</p>
                   </div>
                 </div>
 
                 <h1 className="text-2xl font-bold text-gray-900 mb-3">{formData.title || 'Your Blog Title'}</h1>
-                <p className="text-gray-600 mb-4 leading-relaxed">{formData.excerpt || 'Your blog excerpt will appear here...'}</p>
-
-                {formData.tags && (
+                
+                {formData.category && (
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {formData.tags.split(',').map((tag, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full"
-                      >
-                        {tag.trim()}
-                      </span>
-                    ))}
+                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                      {formData.category}
+                    </span>
                   </div>
                 )}
 
@@ -262,7 +266,7 @@ function CreateBlogModal({ isOpen, onClose, onSubmit, user }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex-shrink-0 flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
           <div className="text-sm text-gray-500">
             {!isPreview && (
               <span>
@@ -270,28 +274,28 @@ function CreateBlogModal({ isOpen, onClose, onSubmit, user }) {
               </span>
             )}
           </div>
-          <div className="flex space-x-3">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-3">
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              className="px-4 py-2 border border-gray-300 text-gray-700 bg-gray-50 rounded-lg font-medium order-2 sm:order-1"
             >
               Cancel
             </button>
-            {!isPreview && (
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-blue-500 text-white rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50 flex items-center space-x-2"
-              >
-                {isSubmitting ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <Save size={16} />
-                )}
-                <span>{isSubmitting ? 'Publishing...' : 'Publish Blog'}</span>
-              </button>
-            )}
+            <button
+              onClick={isPreview ? () => setIsPreview(false) : handleSubmit}
+              disabled={isSubmitting}
+              className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-blue-500 text-white rounded-lg font-medium disabled:opacity-50 flex items-center justify-center space-x-2 order-1 sm:order-2"
+            >
+              {isSubmitting ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Save size={16} />
+              )}
+              <span>
+                {isSubmitting ? 'Publishing...' : isPreview ? 'Back to Edit' : 'Publish Blog'}
+              </span>
+            </button>
           </div>
         </div>
       </div>
