@@ -1,25 +1,16 @@
 import { useState } from 'react';
-import { X, Save, DollarSign, Calendar, Tag, CreditCard, FileText, TrendingUp, TrendingDown } from 'lucide-react';
+import { X, Save, DollarSign, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 
 function CreateTransactionModal({ isOpen, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
     type: 'expense',
     description: '',
-    amount: '',
-    category: '',
-    paymentMethod: '',
-    date: new Date().toISOString().split('T')[0],
-    notes: ''
+    amount: ''
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const categories = {
-    income: ['Salary', 'Freelance', 'Investment', 'Business', 'Gift', 'Other Income'],
-    expense: ['Food', 'Transport', 'Entertainment', 'Utilities', 'Healthcare', 'Shopping', 'Education', 'Other Expense']
-  };
 
-  const paymentMethods = ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', 'PayPal', 'UPI', 'Other'];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,14 +18,6 @@ function CreateTransactionModal({ isOpen, onClose, onSubmit }) {
       ...prev,
       [name]: value
     }));
-    
-    // Clear category when type changes
-    if (name === 'type') {
-      setFormData(prev => ({
-        ...prev,
-        category: ''
-      }));
-    }
     
     // Clear error when user starts typing
     if (errors[name]) {
@@ -56,18 +39,6 @@ function CreateTransactionModal({ isOpen, onClose, onSubmit }) {
       newErrors.amount = 'Please enter a valid amount';
     }
     
-    if (!formData.category) {
-      newErrors.category = 'Please select a category';
-    }
-    
-    if (!formData.paymentMethod) {
-      newErrors.paymentMethod = 'Please select a payment method';
-    }
-    
-    if (!formData.date) {
-      newErrors.date = 'Date is required';
-    }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -79,44 +50,39 @@ function CreateTransactionModal({ isOpen, onClose, onSubmit }) {
     
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      const newTransaction = {
-        id: Date.now(),
+    try {
+      // Prepare data for API
+      const transactionData = {
         type: formData.type,
         description: formData.description,
-        amount: formData.type === 'expense' ? -parseFloat(formData.amount) : parseFloat(formData.amount),
-        category: formData.category,
-        method: formData.paymentMethod,
-        date: formData.date,
-        notes: formData.notes
+        amount: parseFloat(formData.amount)
       };
+
+      await onSubmit(transactionData);
       
-      onSubmit(newTransaction);
+      // Reset form on success
       setFormData({
         type: 'expense',
         description: '',
-        amount: '',
-        category: '',
-        paymentMethod: '',
-        date: new Date().toISOString().split('T')[0],
-        notes: ''
+        amount: ''
       });
       setErrors({});
-      setIsSubmitting(false);
       onClose();
-    }, 1000);
+    } catch (error) {
+      // Handle error
+      setErrors({
+        submit: error.message || 'Failed to create transaction. Please try again.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
     setFormData({
       type: 'expense',
       description: '',
-      amount: '',
-      category: '',
-      paymentMethod: '',
-      date: new Date().toISOString().split('T')[0],
-      notes: ''
+      amount: ''
     });
     setErrors({});
     onClose();
@@ -126,9 +92,9 @@ function CreateTransactionModal({ isOpen, onClose, onSubmit }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-xl w-full max-w-lg max-h-[95vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full flex items-center justify-center">
               <DollarSign size={20} className="text-white" />
@@ -146,8 +112,15 @@ function CreateTransactionModal({ isOpen, onClose, onSubmit }) {
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        {/* Content - Scrollable */}
+        <div className="p-6 overflow-y-auto flex-1">
+          {/* Error Display */}
+          {errors.submit && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+              <p className="text-red-800 text-sm">{errors.submit}</p>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Transaction Type */}
             <div>
@@ -223,88 +196,12 @@ function CreateTransactionModal({ isOpen, onClose, onSubmit }) {
               {errors.amount && <p className="mt-1 text-sm text-red-600">{errors.amount}</p>}
             </div>
 
-            {/* Category */}
-            <div>
-              <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
-                <Tag size={16} />
-                <span>Category</span>
-              </label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                  errors.category ? 'border-red-300' : 'border-gray-300'
-                }`}
-              >
-                <option value="">Select a category</option>
-                {categories[formData.type].map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-              {errors.category && <p className="mt-1 text-sm text-red-600">{errors.category}</p>}
-            </div>
 
-            {/* Payment Method */}
-            <div>
-              <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
-                <CreditCard size={16} />
-                <span>Payment Method</span>
-              </label>
-              <select
-                name="paymentMethod"
-                value={formData.paymentMethod}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                  errors.paymentMethod ? 'border-red-300' : 'border-gray-300'
-                }`}
-              >
-                <option value="">Select payment method</option>
-                {paymentMethods.map(method => (
-                  <option key={method} value={method}>{method}</option>
-                ))}
-              </select>
-              {errors.paymentMethod && <p className="mt-1 text-sm text-red-600">{errors.paymentMethod}</p>}
-            </div>
-
-            {/* Date */}
-            <div>
-              <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
-                <Calendar size={16} />
-                <span>Date</span>
-              </label>
-              <input
-                type="date"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                  errors.date ? 'border-red-300' : 'border-gray-300'
-                }`}
-              />
-              {errors.date && <p className="mt-1 text-sm text-red-600">{errors.date}</p>}
-            </div>
-
-            {/* Notes */}
-            <div>
-              <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
-                <FileText size={16} />
-                <span>Notes (Optional)</span>
-              </label>
-              <textarea
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
-                rows={3}
-                placeholder="Add any additional notes..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
-              />
-            </div>
           </form>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+        {/* Footer - Always visible */}
+        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
           <div className="text-sm text-gray-500">
             {formData.amount && (
               <span className={formData.type === 'income' ? 'text-green-600' : 'text-red-600'}>

@@ -4,7 +4,7 @@ import axios from 'axios';
 const GATEWAY_URL = 'http://localhost:8000'; // Your API Gateway URL
 const BLOG_SERVICE_URL = 'http://localhost:8001'; // Blog Service
 const IDENTITY_SERVICE_URL = 'http://localhost:8002'; // Identity Service
-const TRANSACTION_SERVICE_URL = 'http://localhost:8003'; // Transaction Service
+const TRANSACTION_SERVICE_URL = 'http://localhost:9002'; // Transaction Service
 
 // Create axios instances for each service
 const blogAPI = axios.create({
@@ -86,10 +86,13 @@ export const identityService = {
   logout: () => identityAPI.post('/auth/logout'),
 };
 
-// Transaction Service API
+// Transaction Service API (Updated to match your backend)
 export const transactionService = {
-  // Get all transactions
-  getTransactions: () => transactionAPI.get('/transactions'),
+  // Get all transactions with optional username filter
+  getTransactions: (username = null) => {
+    const url = username ? `/transactions?username=${username}` : '/transactions';
+    return transactionAPI.get(url);
+  },
   
   // Get transaction by ID
   getTransaction: (id) => transactionAPI.get(`/transactions/${id}`),
@@ -103,11 +106,14 @@ export const transactionService = {
   // Delete transaction
   deleteTransaction: (id) => transactionAPI.delete(`/transactions/${id}`),
   
-  // Get transactions by type (income/expense)
-  getTransactionsByType: (type) => transactionAPI.get(`/transactions/type/${type}`),
+  // Get transactions by type (income/expense/transfer)
+  getTransactionsByType: (type, username = null) => {
+    const url = username ? `/transactions/type/${type}?username=${username}` : `/transactions/type/${type}`;
+    return transactionAPI.get(url);
+  },
   
-  // Get monthly summary
-  getMonthlySummary: (month, year) => transactionAPI.get(`/transactions/summary/${year}/${month}`),
+  // Get financial summary
+  getFinancialSummary: (username) => transactionAPI.get(`/transactions/summary?username=${username}`),
 };
 
 export default {
