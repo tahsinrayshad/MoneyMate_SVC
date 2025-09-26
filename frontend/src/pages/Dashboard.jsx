@@ -97,10 +97,10 @@ function Dashboard({ user, onNavigate }) {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome back, {user?.name || "User"}! 👋
+              Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-600 uppercase">{user?.firstname ? `${user.firstname} ${user.lastname}` : user?.username || "User"}</span>!
             </h1>
             <p className="text-gray-600">
-              Here's your financial overview for this month.
+              Here's your financial overview.
             </p>
           </div>
           <div className="mt-4 md:mt-0 flex items-center space-x-3">
